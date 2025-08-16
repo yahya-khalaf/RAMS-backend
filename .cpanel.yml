@@ -1,0 +1,13 @@
+---
+# This file tells cPanel how to deploy your application.
+# It uses BASH commands to copy your frontend files to the public directory.
+deployment:
+  tasks:
+    # Set the DEPLOYPATH to the web root of your subdomain.
+    # Replace 'registrationiccd' with your cPanel username if different.
+    # The 'public_html' part may vary depending on your subdomain's setup.
+    - export DEPLOYPATH=/home/registrationiccd/public_html/yoursubdomain/
+
+    # Copy the entire 'public' directory from 'rams-frontend'
+    # to the specified DEPLOYPATH.
+    - /bin/cp -R rams-frontend/public/* $DEPLOYPATH
