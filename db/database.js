@@ -132,6 +132,20 @@ const INSERT_NEW_INSTITUTE_QUERY = `
     VALUES ($1, $2, $3, $4)
     RETURNING *;
 `;
+
+// NEW: Query to delete a candidate by ID
+const DELETE_CANDIDATE_QUERY = `
+    DELETE FROM candidates
+    WHERE candidate_id = $1
+    RETURNING candidate_id;
+`;
+
+// NEW: Query to delete an institute by ID
+const DELETE_INSTITUTE_QUERY = `
+    DELETE FROM invited_institutes
+    WHERE institute_id = $1
+    RETURNING institute_id;
+`;
 module.exports = {
     pool,
     query,
@@ -145,5 +159,7 @@ module.exports = {
     GET_ALL_INSTITUTES_QUERY,
     GET_INSTITUTE_BY_TOKEN_QUERY,
     INSERT_SINGLE_CANDIDATE_WITH_INSTITUTE_QUERY,
-    INSERT_NEW_INSTITUTE_QUERY
+    INSERT_NEW_INSTITUTE_QUERY,
+    DELETE_CANDIDATE_QUERY,
+    DELETE_INSTITUTE_QUERY
 };

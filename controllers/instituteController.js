@@ -15,6 +15,28 @@ async function getAllInstitutes(req, res) {
         res.status(500).json({ status: 'ERROR', message: 'Internal server error.' });
     }
 }
+async function deleteInstitute(req, res) {
+    const { id } = req.params;
+
+    if (!id) {
+        return res.status(400).json({ status: 'ERROR', message: 'Missing required parameter: id.' });
+    }
+
+    try {
+        const result = await db.query(db.DELETE_INSTITUTE_QUERY, [id]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ status: 'NOT_FOUND', message: 'Institute not found.' });
+        }
+
+        res.status(200).json({ status: 'SUCCESS', message: 'Institute deleted successfully.' });
+
+    } catch (error) {
+        console.error('Database deletion error:', error);
+        res.status(500).json({ status: 'ERROR', message: 'Internal server error.' });
+    }
+}
+
 
 async function addInstitute(req, res) {
     const { instituteName, instituteType, institutePriority, isVip } = req.body;
@@ -36,5 +58,6 @@ async function addInstitute(req, res) {
 
 module.exports = {
     getAllInstitutes,
-    addInstitute
+    addInstitute,
+    deleteInstitute
 };

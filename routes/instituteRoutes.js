@@ -6,5 +6,6 @@ const instituteController = require('../controllers/instituteController');
 // Define the GET endpoint for retrieving all institutes
 router.get('/', instituteController.getAllInstitutes);
 router.post('/', instituteController.addInstitute);
+router.delete('/:id', instituteController.deleteInstitute);
 
 module.exports = router;
