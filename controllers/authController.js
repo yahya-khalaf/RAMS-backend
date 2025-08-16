@@ -68,5 +68,5 @@ async function createAdmin(req, res) {
 
 module.exports = {
     login,
-    createAdmin // Export the new function
+    createAdmin
 };

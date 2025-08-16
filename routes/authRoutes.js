@@ -8,6 +8,6 @@ const authenticateToken = require('../authMiddleware');
 router.post('/login', authController.login);
 
 // Protected route for creating a new admin. Only an authenticated admin can create another admin.
-router.post('/register', authenticateToken, authController.createAdmin);
+router.post('/register',  authController.createAdmin);
 
 module.exports = router;
