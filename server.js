@@ -1,8 +1,6 @@
 // server.js
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
-const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -10,33 +8,35 @@ const port = process.env.PORT || 3000;
 
 // Import the database and routes
 const db = require('./db/database');
+const authRoutes = require('./routes/authRoutes');
 const candidateRoutes = require('./routes/candidateRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const invitationRoutes = require('./routes/invitationRoutes');
 const instituteRoutes = require('./routes/instituteRoutes');
+const authenticateToken = require('./authMiddleware'); // Import the middleware
 
-// Middleware to enable CORS for all origins
-// It is highly recommended to replace '*' with your cPanel frontend domain for production.
 app.use(cors({
     origin: '*',
     optionsSuccessStatus: 200
 }));
 
-// Middleware to parse JSON bodies from requests
 app.use(express.json());
 
-// Main entry point for our candidate-related APIs
-app.use('/api/candidates', candidateRoutes);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/invitations', invitationRoutes);
-app.use('/api/institutes', instituteRoutes);
+// Public route for login
+app.use('/api/auth', authRoutes);
+
+// Protected routes
+app.use('/api/candidates', authenticateToken, candidateRoutes);
+app.use('/api/upload', authenticateToken, uploadRoutes);
+app.use('/api/invitations', authenticateToken, invitationRoutes);
+app.use('/api/institutes', authenticateToken, instituteRoutes);
 
 // A simple health check route
 app.get('/', (req, res) => {
     res.send('Welcome to the RAMS backend API!');
 });
 
-// Start the server and connect to the database
+// Start the server
 async function startServer() {
     try {
         await db.pool.connect();

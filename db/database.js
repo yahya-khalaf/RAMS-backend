@@ -146,6 +146,9 @@ const DELETE_INSTITUTE_QUERY = `
     WHERE institute_id = $1
     RETURNING institute_id;
 `;
+const GET_ADMIN_BY_USERNAME_QUERY = `
+    SELECT admin_id, password_hash FROM admins WHERE username = $1;
+`;
 module.exports = {
     pool,
     query,
@@ -161,5 +164,7 @@ module.exports = {
     INSERT_SINGLE_CANDIDATE_WITH_INSTITUTE_QUERY,
     INSERT_NEW_INSTITUTE_QUERY,
     DELETE_CANDIDATE_QUERY,
-    DELETE_INSTITUTE_QUERY
+    DELETE_INSTITUTE_QUERY,
+    GET_ADMIN_BY_USERNAME_QUERY
+
 };
