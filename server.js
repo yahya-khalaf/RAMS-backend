@@ -15,10 +15,11 @@ const invitationRoutes = require('./routes/invitationRoutes');
 const instituteRoutes = require('./routes/instituteRoutes');
 const authenticateToken = require('./authMiddleware'); // Import the middleware
 
-app.use(cors({
-    origin: '*',
-    optionsSuccessStatus: 200
-}));
+const corsOptions = {
+    origin: 'https://registration.iccdglobal.com',
+    optionsSuccessStatus: 200 // For legacy browser support
+};
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
