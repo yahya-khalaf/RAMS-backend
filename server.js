@@ -31,7 +31,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 
 // Protected routes
-app.use('/api/candidates', authenticateToken, candidateRoutes);
+app.use('/api/candidates', candidateRoutes);
 app.use('/api/upload', authenticateToken, uploadRoutes);
 app.use('/api/invitations', authenticateToken, invitationRoutes);
 app.use('/api/institutes', authenticateToken, instituteRoutes);
