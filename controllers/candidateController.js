@@ -58,7 +58,8 @@ async function deleteCandidate(req, res) {
  * @param {Object} res The Express response object.
  */
 async function createCandidate(req, res) {
-    const { firstName, lastName, position, institute, country, phoneNumber, email, instituteId } = req.body;
+    // Add 'language' to the destructuring
+    const { firstName, lastName, position, institute, country, phoneNumber, email, language, instituteId } = req.body;
 
     if (!firstName || !lastName || !phoneNumber || !email) {
         return res.status(400).json({ status: 'ERROR', message: 'Missing required fields: firstName, lastName, phoneNumber, and email.' });
@@ -66,9 +67,11 @@ async function createCandidate(req, res) {
 
     try {
         const queryText = instituteId ? db.INSERT_SINGLE_CANDIDATE_WITH_INSTITUTE_QUERY : db.INSERT_SINGLE_CANDIDATE_QUERY;
+        
+        // Add the language variable (with a fallback) to the values array
         const values = instituteId
-            ? [firstName, lastName, position, institute, country, phoneNumber, email, instituteId]
-            : [firstName, lastName, position, institute, country, phoneNumber, email];
+            ? [firstName, lastName, position, institute, country, phoneNumber, email, language || 'en', instituteId]
+            : [firstName, lastName, position, institute, country, phoneNumber, email, language || 'en'];
 
         const result = await db.query(queryText, values);
 
@@ -84,7 +87,6 @@ async function createCandidate(req, res) {
         res.status(500).json({ status: 'ERROR', message: 'Internal server error.' });
     }
 }
-
 /**
  * Retrieves a list of candidates with optional filters.
  * @param {Object} req The Express request object.

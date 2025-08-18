@@ -46,8 +46,9 @@ const INSERT_SINGLE_CANDIDATE_WITH_INSTITUTE_QUERY = `
             country,
             phone_number,
             email,
+            language,
             institute_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8 ,$9)
         ON CONFLICT (email, phone_number) DO NOTHING
         RETURNING candidate_id;
     `;
@@ -60,8 +61,9 @@ const INSERT_BULK_CANDIDATES_QUERY = `
         institute,
         country,
         phone_number,
-        email
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        email,
+        language 
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     ON CONFLICT (email, phone_number) DO NOTHING;
 `;
 
@@ -84,7 +86,7 @@ const GET_CANDIDATE_ID_BY_EMAIL = `
 `;
 
 const GET_CANDIDATE_DETAILS_BY_ID = `
-    SELECT email, first_name, last_name FROM candidates WHERE candidate_id = $1;
+    SELECT email, first_name, last_name, language FROM candidates WHERE candidate_id = $1;
 `;
 
 const GET_CANDIDATE_AND_EVENT_BY_TOKEN = `
