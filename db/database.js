@@ -81,7 +81,9 @@ const INSERT_SINGLE_CANDIDATE_QUERY = `
     ON CONFLICT (email, phone_number) DO NOTHING
     RETURNING candidate_id;
 `;
-
+const GET_CANDIDATE_INFO_BY_ID = `
+    SELECT email, first_name, language FROM candidates WHERE candidate_id = $1;
+`;
 const GET_CANDIDATE_ID_BY_EMAIL = `
     SELECT candidate_id FROM candidates WHERE email = $1;
 `;
@@ -177,6 +179,6 @@ module.exports = {
     DELETE_CANDIDATE_QUERY,
     DELETE_INSTITUTE_QUERY,
     GET_ADMIN_BY_USERNAME_QUERY,
-    INSERT_NEW_ADMIN_QUERY
-
+    INSERT_NEW_ADMIN_QUERY,
+    GET_CANDIDATE_INFO_BY_ID
 };

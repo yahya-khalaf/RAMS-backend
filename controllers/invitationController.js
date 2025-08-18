@@ -59,48 +59,18 @@ const translations = {
     }
 };
 
-// Query to get candidate's language using the invitation token
-const GET_CANDIDATE_AND_INVITATION_DETAILS_BY_TOKEN = `
-    SELECT i.invitation_id, c.candidate_id, c.email, c.first_name, c.language
-    FROM event_invitations i
-    JOIN candidates c ON i.candidate_id = c.candidate_id
-    WHERE i.invitation_token = $1;
-`;
-
-// Helper function to generate the HTML for browser pages
 const generateHtmlPage = (lang, title, bodyContent, token) => {
     const dir = lang === 'ar' ? 'rtl' : 'ltr';
     const textAlign = lang === 'ar' ? 'right' : 'left';
     const otherLangs = ['ar', 'en', 'fr'].filter(l => l !== lang);
     const langLinks = otherLangs.map(l => `<a href="?token=${token}&lang=${l}" class="lang-link">${l.toUpperCase()}</a>`).join(' | ');
     return `
-        <!DOCTYPE html>
-        <html lang="${lang}" dir="${dir}">
-        <head>
-            <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title>
-            <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-            <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-            <style>
-                body { font-family: 'Cairo', sans-serif; text-align: ${textAlign}; background-color: #f1f2f2; margin: 0; padding: 2rem; }
-                .container { max-width: 600px; margin: 1rem auto; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-                h1 { color: #1b2a39; margin-bottom: 1rem; } p { color: #414042; margin-bottom: 1rem; }
-                img { border-radius: 8px; border: 2px solid #15a9b2; padding: 10px; margin: 1rem 0; background: #fff; max-width: 80%; height: auto; }
-                .download-btn { display: inline-block; background-color: #15a9b2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; transition: background-color 0.3s; }
-                .download-btn:hover { background-color: #0f7a81; } .lang-switcher { position: absolute; top: 15px; ${lang === 'ar' ? 'left: 15px;' : 'right: 15px;'} font-size: 14px; }
-                .lang-link { color: #414042; text-decoration: none; font-weight: bold; } .lang-link:hover { text-decoration: underline; }
-            </style>
-        </head>
-        <body><div class="lang-switcher">${langLinks}</div><div class="container">${bodyContent}</div></body>
-        </html>`;
+        <!DOCTYPE html><html lang="${lang}" dir="${dir}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"><style>body{font-family:'Cairo',sans-serif;text-align:${textAlign};background-color:#f1f2f2;margin:0;padding:2rem}.container{max-width:600px;margin:1rem auto;padding:2rem;background:white;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,0.1)}h1{color:#1b2a39;margin-bottom:1rem}p{color:#414042;margin-bottom:1rem}img{border-radius:8px;border:2px solid #15a9b2;padding:10px;margin:1rem 0;background:#fff;max-width:80%;height:auto}.download-btn{display:inline-block;background-color:#15a9b2;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:bold;transition:background-color .3s}.download-btn:hover{background-color:#0f7a81}.lang-switcher{position:absolute;top:15px;${'ar'===lang?'left:15px;':'right:15px;'}font-size:14px}.lang-link{color:#414042;text-decoration:none;font-weight:bold}.lang-link:hover{text-decoration:underline}</style></head><body><div class="lang-switcher">${langLinks}</div><div class="container">${bodyContent}</div></body></html>`;
 };
 
 async function handleConfirmInvitation(req, res) {
     const { token, lang: langOverride } = req.query;
     const t = (key, lang) => translations[lang]?.[key] || translations['en'][key];
-    if (!token) {
-        const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorMissingToken', 'en')}</p>`, token);
-        return res.status(400).send(errorHtml);
-    }
 
     const finalConfirmationEmail = {
         ar: {
@@ -130,7 +100,7 @@ Tel: ‪(+2) 01148601759‬
             subject: "Présence confirmée : Réception Annuelle de la CICD",
             html: (qrLink) => `<div style="text-align: left; font-family: 'Cairo', sans-serif; white-space: pre-wrap;">Merci pour votre inscription. Nous nous réjouissons de vous accueillir à « la Réception Annuelle de la CICD », qui aura lieu le dimanche 14 septembre 2025 à 17h00, à la salle « Magenta Ballroom » de l’Hôtel de Fairmont Nile City, au Caire.
 
-L'entrée est disponible exclusively via QR code.
+L'entrée est disponible exclusivement via QR code.
 <a href="${qrLink}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px;">Afficher mon code QR</a>
 
 Pour en savoir plus, veuillez contacter : 
@@ -139,15 +109,20 @@ Tél : ‪(+2) 01148601759‬
         }
     };
 
+    if (!token) {
+        const errHtml = generateHtmlPage('en', t('errorHeader', 'en'), `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorMissingToken', 'en')}</p>`, token);
+        return res.status(400).send(errHtml);
+    }
+
     try {
         const updateResult = await db.query(`UPDATE event_invitations SET state = 'Accepted', responded_at = NOW() WHERE invitation_token = $1 RETURNING candidate_id;`, [token]);
         if (updateResult.rowCount === 0) {
-            const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorInvalidToken', 'en')}</p>`, token);
-            return res.status(404).send(errorHtml);
+            const errHtml = generateHtmlPage('en', t('errorHeader', 'en'), `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorInvalidToken', 'en')}</p>`, token);
+            return res.status(404).send(errHtml);
         }
 
         const { candidate_id } = updateResult.rows[0];
-        const candidateDetails = await db.query(`SELECT email, language FROM candidates WHERE candidate_id = $1`, [candidate_id]);
+        const candidateDetails = await db.query(db.GET_CANDIDATE_INFO_BY_ID, [candidate_id]);
         const candidate = candidateDetails.rows[0];
         
         const lang = langOverride || candidate.language || 'en';
@@ -155,52 +130,59 @@ Tél : ‪(+2) 01148601759‬
         const backendBaseUrl = `${process.env.BACKEND_BASE_URL || 'http://localhost:3000'}/api/invitations`;
         const qrCodeLink = `${backendBaseUrl}/show-qrcode?token=${token}&lang=${lang}`;
 
-        // **FIX:** Use the new, multilingual email template
         const emailTemplate = finalConfirmationEmail[lang];
         await emailService.sendPersonalizedEmail(candidate.email, emailTemplate.subject, emailTemplate.html(qrCodeLink));
 
-        // Generate the multilingual browser page
         const bodyContent = `<h1>${t('confirmHeader', lang)}</h1><p>${t('confirmMessage', lang)}</p>`;
         const responseHtml = generateHtmlPage(lang, t('confirmTitle', lang), bodyContent, token);
         return res.status(200).send(responseHtml);
 
     } catch (error) {
         console.error("Error confirming invitation:", error);
-        const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorServer', 'en')}</p>`, token);
-        return res.status(500).send(errorHtml);
+        const errHtml = generateHtmlPage('en', t('errorHeader', 'en'), `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorServer', 'en')}</p>`, token);
+        return res.status(500).send(errHtml);
     }
 }
 
 async function handleDeclineInvitation(req, res) {
     const { token, lang: langOverride } = req.query;
     const t = (key, lang) => translations[lang]?.[key] || translations['en'][key];
+
+    // **FIX:** Added multilingual decline emails
+    const declineEmail = {
+        ar: { subject: "تسجيل رفض الدعوة", html: `<div style="text-align: center; font-family: 'Cairo', sans-serif;"><h1>تم تسجيل رفضك.</h1><p>شكراً لإعلامنا. نأمل أن نراك في أحداثنا المستقبلية.</p></div>` },
+        en: { subject: "Invitation Declined", html: `<div style="text-align: center; font-family: 'Cairo', sans-serif;"><h1>Your refusal has been registered.</h1><p>Thank you for letting us know. We hope to see you at our future events.</p></div>` },
+        fr: { subject: "Invitation Refusée", html: `<div style="text-align: center; font-family: 'Cairo', sans-serif;"><h1>Votre refus a été enregistré.</h1><p>Merci de nous en avoir informé. Nous espérons vous voir lors de nos prochains événements.</p></div>` }
+    };
+    
     if (!token) {
-        const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorMissingToken', 'en')}</p>`, token);
-        return res.status(400).send(errorHtml);
+        const errHtml = generateHtmlPage('en', t('errorHeader', 'en'), `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorMissingToken', 'en')}</p>`, token);
+        return res.status(400).send(errHtml);
     }
     try {
         const updateResult = await db.query(`UPDATE event_invitations SET state = 'Rejected', responded_at = NOW() WHERE invitation_token = $1 RETURNING candidate_id;`, [token]);
         if (updateResult.rowCount === 0) {
-            const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorInvalidToken', 'en')}</p>`, token);
-            return res.status(404).send(errorHtml);
+            const errHtml = generateHtmlPage('en', t('errorHeader', 'en'), `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorInvalidToken', 'en')}</p>`, token);
+            return res.status(404).send(errHtml);
         }
         
         const { candidate_id } = updateResult.rows[0];
-        const candidateDetails = await db.query(`SELECT email, language FROM candidates WHERE candidate_id = $1`, [candidate_id]);
+        const candidateDetails = await db.query(db.GET_CANDIDATE_INFO_BY_ID, [candidate_id]);
         const candidate = candidateDetails.rows[0];
         
         const lang = langOverride || candidate.language || 'en';
         
-        const declineHtml = `<div style="text-align: center; font-family: 'Cairo', sans-serif;"><h1>تم تسجيل رفضك.</h1><p>شكراً لإعلامنا. نأمل أن نراك في أحداثنا المستقبلية.</p></div>`;
-        await emailService.sendPersonalizedEmail(candidate.email, 'تسجيل رفض الدعوة', declineHtml);
+        // **FIX:** Use the new multilingual decline email
+        const emailTemplate = declineEmail[lang];
+        await emailService.sendPersonalizedEmail(candidate.email, emailTemplate.subject, emailTemplate.html);
 
         const bodyContent = `<h1>${t('declineHeader', lang)}</h1><p>${t('declineMessage', lang)}</p>`;
         const responseHtml = generateHtmlPage(lang, t('declineTitle', lang), bodyContent, token);
         return res.status(200).send(responseHtml);
     } catch (error) {
         console.error("Error declining invitation:", error);
-        const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorServer', 'en')}</p>`, token);
-        return res.status(500).send(errorHtml);
+        const errHtml = generateHtmlPage('en', t('errorHeader', 'en'), `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorServer', 'en')}</p>`, token);
+        return res.status(500).send(errHtml);
     }
 }
 
@@ -212,14 +194,14 @@ async function handleShowQrCode(req, res) {
         return text;
     };
     if (!token) {
-        const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorMissingToken', 'en')}</p>`, token);
-        return res.status(400).send(errorHtml);
+        const errHtml = generateHtmlPage('en', t('errorHeader', 'en'), `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorMissingToken', 'en')}</p>`, token);
+        return res.status(400).send(errHtml);
     }
     try {
-        const result = await db.query(GET_CANDIDATE_AND_INVITATION_DETAILS_BY_TOKEN, [token]);
+        const result = await db.query(db.GET_CANDIDATE_AND_INVITATION_DETAILS_BY_TOKEN, [token]);
         if (result.rowCount === 0) {
-            const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorInvalidQrToken', 'en')}</p>`, token);
-            return res.status(404).send(errorHtml);
+            const errHtml = generateHtmlPage('en', t('errorHeader', 'en'), `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorInvalidQrToken', 'en')}</p>`, token);
+            return res.status(404).send(errHtml);
         }
         const { invitation_id, language } = result.rows[0];
         const lang = langOverride || language || 'en';
@@ -233,8 +215,8 @@ async function handleShowQrCode(req, res) {
         return res.status(200).send(htmlPage);
     } catch (error) {
         console.error("Error serving QR code page:", error);
-        const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorServer', 'en')}</p>`, token);
-        return res.status(500).send(errorHtml);
+        const errHtml = generateHtmlPage('en', t('errorHeader', 'en'), `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorServer', 'en')}</p>`, token);
+        return res.status(500).send(errHtml);
     }
 }
 
@@ -244,38 +226,19 @@ async function sendInvitations(req, res) {
         return res.status(400).json({ status: 'ERROR', message: 'Missing required fields.' });
     }
 
-    const successfulRecipients = [];
-    const failedRecipients = [];
+    const successfulRecipients = [], failedRecipients = [];
     const backendBaseUrl = `${process.env.BACKEND_BASE_URL || 'http://localhost:3000'}/api/invitations`;
 
     const invitationEmail = {
-        ar: {
-            subject: "دعوة إلى: حفل الاستقبال السنوي للغرفة الإسلامية",
-            greeting: "مرحباً",
-            body: "لقد تلقيت دعوة لحضور \"حفل الاستقبال السنوي للغرفة الإسلامية\" يوم الأحد، 14 سبتمبر 2025، الساعة 5:00 مساءً في فندق فيرمونت نايل سيتي، القاهرة. يرجى تسجيل استجابتك.",
-            accept: "قبول الدعوة",
-            decline: "رفض الدعوة"
-        },
-        en: {
-            subject: "Invitation to: ICCD Annual Reception",
-            greeting: "Hello",
-            body: "You have received an invitation to attend the \"ICCD Annual Reception\" on Sunday, September 14, 2025, at 5:00 PM at the Fairmont Nile City Hotel, Cairo. Please register your response.",
-            accept: "Accept Invitation",
-            decline: "Decline Invitation"
-        },
-        fr: {
-            subject: "Invitation à : la Réception Annuelle de la CICD",
-            greeting: "Bonjour",
-            body: "Vous avez reçu une invitation pour assister à « la Réception Annuelle de la CICD » le dimanche 14 septembre 2025, à 17h00 à l'Hôtel Fairmont Nile City, Le Caire. Veuillez enregistrer votre réponse.",
-            accept: "Accepter l'invitation",
-            decline: "Refuser l'invitation"
-        }
+        ar: { subject: "دعوة إلى: حفل الاستقبال السنوي للغرفة الإسلامية", greeting: "مرحباً", body: "لقد تلقيت دعوة لحضور \"حفل الاستقبال السنوي للغرفة الإسلامية\" يوم الأحد، 14 سبتمبر 2025، الساعة 5:00 مساءً في فندق فيرمونت نايل سيتي، القاهرة. يرجى تسجيل استجابتك.", accept: "قبول الدعوة", decline: "رفض الدعوة" },
+        en: { subject: "Invitation to: ICCD Annual Reception", greeting: "Hello", body: "You have received an invitation to attend the \"ICCD Annual Reception\" on Sunday, September 14, 2025, at 5:00 PM at the Fairmont Nile City Hotel, Cairo. Please register your response.", accept: "Accept Invitation", decline: "Decline Invitation" },
+        fr: { subject: "Invitation à : la Réception Annuelle de la CICD", greeting: "Bonjour", body: "Vous avez reçu une invitation pour assister à « la Réception Annuelle de la CICD » le dimanche 14 septembre 2025, à 17h00 à l'Hôtel Fairmont Nile City, Le Caire. Veuillez enregistrer votre réponse.", accept: "Accepter l'invitation", decline: "Refuser l'invitation" }
     };
 
     try {
         const sendPromises = candidateIds.map(async (candidateId) => {
             try {
-                const candidateResult = await db.query(db.GET_CANDIDATE_DETAILS_BY_ID, [candidateId]);
+                const candidateResult = await db.query(db.GET_CANDIDATE_INFO_BY_ID, [candidateId]);
                 const candidate = candidateResult.rows[0];
                 if (!candidate || !candidate.email) { throw new Error(`Candidate ID ${candidateId} has no valid email.`); }
 
@@ -287,15 +250,7 @@ async function sendInvitations(req, res) {
                 const confirmUrl = `${backendBaseUrl}/confirm?token=${invitationToken}`;
                 const declineUrl = `${backendBaseUrl}/decline?token=${invitationToken}`;
 
-                const htmlBody = `
-                    <div style="text-align: center; font-family: 'Cairo', sans-serif;" dir="${lang === 'ar' ? 'rtl' : 'ltr'}">
-                        <h1>${t.greeting} ${candidate.first_name}!</h1>
-                        <p>${t.body}</p>
-                        <p>
-                            <a href="${confirmUrl}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; margin: 5px;">${t.accept}</a>
-                            <a href="${declineUrl}" style="display: inline-block; padding: 12px 24px; background-color: #e53e3e; color: white; text-decoration: none; border-radius: 8px; margin: 5px;">${t.decline}</a>
-                        </p>
-                    </div>`;
+                const htmlBody = `<div style="text-align: center; font-family: 'Cairo', sans-serif;" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"><h1>${t.greeting} ${candidate.first_name}!</h1><p>${t.body}</p><p><a href="${confirmUrl}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; margin: 5px;">${t.accept}</a><a href="${declineUrl}" style="display: inline-block; padding: 12px 24px; background-color: #e53e3e; color: white; text-decoration: none; border-radius: 8px; margin: 5px;">${t.decline}</a></p></div>`;
 
                 await emailService.sendPersonalizedEmail(candidate.email, t.subject, htmlBody);
                 successfulRecipients.push(candidate.email);
@@ -304,9 +259,7 @@ async function sendInvitations(req, res) {
                 failedRecipients.push(candidateId);
             }
         });
-
         await Promise.all(sendPromises);
-
         if (successfulRecipients.length > 0) {
             return res.status(200).json({ status: 'SUCCESS', message: `Sent ${successfulRecipients.length} invitation(s).`, excluded_recipients: failedRecipients });
         } else {

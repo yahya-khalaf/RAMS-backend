@@ -38,7 +38,7 @@ app.use('/api/institutes', authenticateToken, instituteRoutes);
 
 // A simple health check route
 app.get('/', (req, res) => {
-    res.send('Welcome to the RAMS backend API101!');
+    res.send('Welcome to the RAMS backend API wwe!');
 });
 
 // Start the server
