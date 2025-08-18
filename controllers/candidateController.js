@@ -1,6 +1,6 @@
 // controllers/candidateController.js
 const db = require('../db/database');
-
+const logger = require('../services/loggerService');
 /**
  * Updates a candidate's state based on ID and Invitation ID.
  * @param {Object} req The Express request object.
@@ -32,6 +32,7 @@ async function updateCandidateState(req, res) {
 
 async function deleteCandidate(req, res) {
     const { id } = req.params;
+    const adminId = req.user.adminId;
 
     if (!id) {
         return res.status(400).json({ status: 'ERROR', message: 'Missing required parameter: id.' });
@@ -43,6 +44,7 @@ async function deleteCandidate(req, res) {
         if (result.rowCount === 0) {
             return res.status(404).json({ status: 'NOT_FOUND', message: 'Candidate not found.' });
         }
+        await logger.logAction('DELETE_CANDIDATE', adminId, `Candidate ID: ${id}`);
 
         res.status(200).json({ status: 'SUCCESS', message: 'Candidate deleted successfully.' });
 
@@ -67,7 +69,7 @@ async function createCandidate(req, res) {
 
     try {
         const queryText = instituteId ? db.INSERT_SINGLE_CANDIDATE_WITH_INSTITUTE_QUERY : db.INSERT_SINGLE_CANDIDATE_QUERY;
-        
+
         // Add the language variable (with a fallback) to the values array
         const values = instituteId
             ? [firstName, lastName, position, institute, country, phoneNumber, email, language || 'en', instituteId]
@@ -143,16 +145,16 @@ async function getFilteredCandidates(req, res) {
             ${whereClause}
             ORDER BY c.created_at DESC;
         `;
-        
+
         const result = await db.query(queryText, values);
-        
+
         // Map the result to use the custom institute name if available
         const finalData = result.rows.map(row => ({
             ...row,
             // Use the custom institute name if available, otherwise use the regular one
             institute: row.custom_institute_name || row.institute
         }));
-        
+
         res.status(200).json({ status: 'SUCCESS', data: finalData });
 
     } catch (error) {
