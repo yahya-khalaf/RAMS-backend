@@ -33,7 +33,7 @@ app.use('/api/auth', authRoutes);
 // Protected routes
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/upload', authenticateToken, uploadRoutes);
-app.use('/api/invitations', authenticateToken, invitationRoutes);
+app.use('/api/invitations',  invitationRoutes);
 app.use('/api/institutes', authenticateToken, instituteRoutes);
 
 // A simple health check route

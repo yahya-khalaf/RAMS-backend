@@ -4,6 +4,7 @@ const db = require('../db/database');
 const QRCode = require('qrcode');
 require('dotenv').config();
 
+// Centralized translations for all user-facing pages
 const translations = {
     ar: {
         confirmTitle: "تم تأكيد الحضور",
@@ -58,13 +59,15 @@ const translations = {
     }
 };
 
+// Query to get candidate's language using the invitation token
 const GET_CANDIDATE_AND_INVITATION_DETAILS_BY_TOKEN = `
-    SELECT i.invitation_id, c.language
+    SELECT i.invitation_id, c.candidate_id, c.email, c.first_name, c.language
     FROM event_invitations i
     JOIN candidates c ON i.candidate_id = c.candidate_id
     WHERE i.invitation_token = $1;
 `;
 
+// Helper function to generate the HTML for browser pages
 const generateHtmlPage = (lang, title, bodyContent, token) => {
     const dir = lang === 'ar' ? 'rtl' : 'ltr';
     const textAlign = lang === 'ar' ? 'right' : 'left';
@@ -90,6 +93,89 @@ const generateHtmlPage = (lang, title, bodyContent, token) => {
         <body><div class="lang-switcher">${langLinks}</div><div class="container">${bodyContent}</div></body>
         </html>`;
 };
+
+
+async function handleConfirmInvitation(req, res) {
+    const { token, lang: langOverride } = req.query;
+    const t = (key, lang) => translations[lang]?.[key] || translations['en'][key];
+    if (!token) {
+        const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorMissingToken', 'en')}</p>`, token);
+        return res.status(400).send(errorHtml);
+    }
+
+    const finalConfirmationEmail = {
+        ar: {
+            subject: "تأكيد حضورك: حفل الاستقبال السنوي للغرفة الإسلامية",
+            html: (qrLink) => `<div style="text-align: right; font-family: 'Cairo', sans-serif; direction: rtl; white-space: pre-wrap;">شكرًا للتسجيل!
+نتطلع إلى لقائكم في "حفل الاستقبال السنوي للغرفة الإسلامية" يوم الأحد الموافق 14 سبتمبر 2025، في تمام الساعة 5 مساءً، بقاعة ماجنيتا - فندق فيرمونت نايل سيتي - القاهرة.
+
+الدخول متاح حصرياً عبر رمز الاستجابة السريعة.
+<a href="${qrLink}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px;">إظهار رمز الاستجابة السريعة</a>
+
+للمزيد من التفاصيل، يُرجى التواصل عبر:
+ت: ‪(+2) 01148601759‬
+  ‪(+2) 01004816779</div>`
+        },
+        en: {
+            subject: "Attendance Confirmed: ICCD Annual Reception",
+            html: (qrLink) => `<div style="text-align: left; font-family: 'Cairo', sans-serif; white-space: pre-wrap;">Thank you for your registration. We look forward to welcoming you to "ICCD Annual Reception" on Sunday, September 14, 2025, at 5:00 PM, at the Magenta Ballroom, Fairmont Nile City Hotel, Cairo.
+
+Entry is available exclusively via QR code.
+<a href="${qrLink}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px;">Show My QR Code</a>
+
+For more details, please contact:
+Tel: ‪(+2) 01148601759‬ 
+      ‪(+2) 01004816779</div>`
+        },
+        fr: {
+            subject: "Présence confirmée : Réception Annuelle de la CICD",
+            html: (qrLink) => `<div style="text-align: left; font-family: 'Cairo', sans-serif; white-space: pre-wrap;">Merci pour votre inscription. Nous nous réjouissons de vous accueillir à « la Réception Annuelle de la CICD », qui aura lieu le dimanche 14 septembre 2025 à 17h00, à la salle « Magenta Ballroom » de l’Hôtel de Fairmont Nile City, au Caire.
+
+L'entrée est disponible exclusivement via QR code.
+<a href="${qrLink}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px;">Afficher mon code QR</a>
+
+Pour en savoir plus, veuillez contacter : 
+Tél : ‪(+2) 01148601759‬ 
+       ‪(+2) 01004816779</div>`
+        }
+    };
+
+    try {
+        const updateResult = await db.query(`UPDATE event_invitations SET state = 'Accepted', responded_at = NOW() WHERE invitation_token = $1 RETURNING candidate_id;`, [token]);
+        if (updateResult.rowCount === 0) {
+            const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorInvalidToken', 'en')}</p>`, token);
+            return res.status(404).send(errorHtml);
+        }
+
+        const { candidate_id } = updateResult.rows[0];
+        const candidateDetails = await db.query(`SELECT email, language FROM candidates WHERE candidate_id = $1`, [candidate_id]);
+        const candidate = candidateDetails.rows[0];
+        
+        // Determine the correct language: 1st priority is override, 2nd is DB, fallback is 'en'
+        const lang = langOverride || candidate.language || 'en';
+        
+        const backendBaseUrl = `${process.env.BACKEND_BASE_URL || 'http://localhost:3000'}/api/invitations`;
+        const qrCodeLink = `${backendBaseUrl}/show-qrcode?token=${token}&lang=${lang}`;
+
+        // *** FIX: Use the new, multilingual email template ***
+        const emailTemplate = finalConfirmationEmail[lang];
+        await emailService.sendPersonalizedEmail(candidate.email, emailTemplate.subject, emailTemplate.html(qrCodeLink));
+
+        // Generate the multilingual browser page
+        const bodyContent = `<h1>${t('confirmHeader', lang)}</h1><p>${t('confirmMessage', lang)}</p>`;
+        const responseHtml = generateHtmlPage(lang, t('confirmTitle', lang), bodyContent, token);
+        return res.status(200).send(responseHtml);
+
+    } catch (error) {
+        console.error("Error confirming invitation:", error);
+        const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorServer', 'en')}</p>`, token);
+        return res.status(500).send(errorHtml);
+    }
+}
+
+
+// The rest of the functions (handleShowQrCode, handleDeclineInvitation, sendInvitations) should be the same as the versions I provided in the previous "final answer".
+// For completeness, here they are again.
 
 async function handleShowQrCode(req, res) {
     const { token, lang: langOverride } = req.query;
@@ -205,73 +291,6 @@ async function sendInvitations(req, res) {
     }
 }
 
-async function handleConfirmInvitation(req, res) {
-    const { token, lang: langOverride } = req.query;
-    const t = (key, lang) => translations[lang]?.[key] || translations['en'][key];
-    if (!token) {
-        const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorMissingToken', 'en')}</p>`, token);
-        return res.status(400).send(errorHtml);
-    }
-
-    const finalConfirmationEmail = {
-        ar: {
-            subject: "تأكيد حضورك: حفل الاستقبال السنوي للغرفة الإسلامية",
-            html: (qrLink) => `<div style="text-align: right; font-family: 'Cairo', sans-serif; direction: rtl;">
-                <p>شكرًا للتسجيل!</p>
-                <p>نتطلع إلى لقائكم في "حفل الاستقبال السنوي للغرفة الإسلامية" يوم الأحد الموافق 14 سبتمبر 2025، في تمام الساعة 5 مساءً، بقاعة ماجنيتا - فندق فيرمونت نايل سيتي - القاهرة.</p>
-                <p><strong>الدخول متاح حصرياً عبر رمز الاستجابة السريعة.</strong></p>
-                <p><a href="${qrLink}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">إظهار رمز الاستجابة السريعة</a></p>
-                <p>للمزيد من التفاصيل، يُرجى التواصل عبر:<br>ت: ‪(+2) 01148601759‬<br>  ‪(+2) 01004816779</p>
-            </div>`
-        },
-        en: {
-            subject: "Attendance Confirmed: ICCD Annual Reception",
-            html: (qrLink) => `<div style="text-align: left; font-family: 'Cairo', sans-serif;">
-                <p>Thank you for your registration.</p>
-                <p>We look forward to welcoming you to "ICCD Annual Reception" on Sunday, September 14, 2025, at 5:00 PM, at the Magenta Ballroom, Fairmont Nile City Hotel, Cairo.</p>
-                <p><strong>Entry is available exclusively via QR code.</strong></p>
-                <p><a href="${qrLink}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">Show My QR Code</a></p>
-                <p>For more details, please contact:<br>Tel: ‪(+2) 01148601759‬<br>      ‪(+2) 01004816779</p>
-            </div>`
-        },
-        fr: {
-            subject: "Présence confirmée : Réception Annuelle de la CICD",
-            html: (qrLink) => `<div style="text-align: left; font-family: 'Cairo', sans-serif;">
-                <p>Merci pour votre inscription.</p>
-                <p>Nous nous réjouissons de vous accueillir à « la Réception Annuelle de la CICD », qui aura lieu le dimanche 14 septembre 2025 à 17h00, à la salle « Magenta Ballroom » de l’Hôtel de Fairmont Nile City, au Caire.</p>
-                <p><strong>L'entrée est disponible exclusivement via QR code.</strong></p>
-                <p><a href="${qrLink}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">Afficher mon code QR</a></p>
-                <p>Pour en savoir plus, veuillez contacter :<br>Tél : ‪(+2) 01148601759‬<br>       ‪(+2) 01004816779</p>
-            </div>`
-        }
-    };
-
-    try {
-        const updateResult = await db.query(`UPDATE event_invitations SET state = 'Accepted', responded_at = NOW() WHERE invitation_token = $1 RETURNING *;`, [token]);
-        if (updateResult.rowCount === 0) {
-            const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorInvalidToken', 'en')}</p>`, token);
-            return res.status(404).send(errorHtml);
-        }
-        const invitation = updateResult.rows[0];
-        const candidateDetails = await db.query(`SELECT email, language FROM candidates WHERE candidate_id = $1`, [invitation.candidate_id]);
-        const candidate = candidateDetails.rows[0];
-        const lang = langOverride || candidate.language || 'en';
-        
-        const backendBaseUrl = `${process.env.BACKEND_BASE_URL || 'http://localhost:3000'}/api/invitations`;
-        const qrCodeLink = `${backendBaseUrl}/show-qrcode?token=${token}&lang=${lang}`;
-
-        const emailTemplate = finalConfirmationEmail[lang];
-        await emailService.sendPersonalizedEmail(candidate.email, emailTemplate.subject, emailTemplate.html(qrCodeLink));
-
-        const bodyContent = `<h1>${t('confirmHeader', lang)}</h1><p>${t('confirmMessage', lang)}</p>`;
-        const responseHtml = generateHtmlPage(lang, t('confirmTitle', lang), bodyContent, token);
-        return res.status(200).send(responseHtml);
-    } catch (error) {
-        console.error("Error confirming invitation:", error);
-        const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorServer', 'en')}</p>`, token);
-        return res.status(500).send(errorHtml);
-    }
-}
 
 async function handleDeclineInvitation(req, res) {
     const { token, lang: langOverride } = req.query;
@@ -281,14 +300,16 @@ async function handleDeclineInvitation(req, res) {
         return res.status(400).send(errorHtml);
     }
     try {
-        const updateResult = await db.query(`UPDATE event_invitations SET state = 'Rejected', responded_at = NOW() WHERE invitation_token = $1 RETURNING *;`, [token]);
+        const updateResult = await db.query(`UPDATE event_invitations SET state = 'Rejected', responded_at = NOW() WHERE invitation_token = $1 RETURNING candidate_id;`, [token]);
         if (updateResult.rowCount === 0) {
             const errorHtml = generateHtmlPage('en', 'Error', `<h1>${t('errorHeader', 'en')}</h1><p>${t('errorInvalidToken', 'en')}</p>`, token);
             return res.status(404).send(errorHtml);
         }
-        const invitation = updateResult.rows[0];
-        const candidateDetails = await db.query(`SELECT email, language FROM candidates WHERE candidate_id = $1`, [invitation.candidate_id]);
+        
+        const { candidate_id } = updateResult.rows[0];
+        const candidateDetails = await db.query(`SELECT email, language FROM candidates WHERE candidate_id = $1`, [candidate_id]);
         const candidate = candidateDetails.rows[0];
+        
         const lang = langOverride || candidate.language || 'en';
         
         const declineHtml = `<div style="text-align: center; font-family: 'Cairo', sans-serif;"><h1>تم تسجيل رفضك.</h1><p>شكراً لإعلامنا. نأمل أن نراك في أحداثنا المستقبلية.</p></div>`;
@@ -303,6 +324,7 @@ async function handleDeclineInvitation(req, res) {
         return res.status(500).send(errorHtml);
     }
 }
+
 
 module.exports = {
     sendInvitations,
