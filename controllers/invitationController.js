@@ -34,6 +34,11 @@ const generateHtmlPage = (lang, title, bodyContent, token) => {
 
 async function handleConfirmInvitation(req, res) {
     const { token, lang: langOverride } = req.query;
+    
+    // --- DEBUG LOGS ---
+    console.log("\n--- [ACTION]: handleConfirmInvitation ---");
+    console.log(`Query Params: token=${token}, langOverride=${langOverride}`);
+    // ------------------
 
     if (!token) {
         const body = `<h1>Error</h1><p>Invitation token is missing.</p>`;
@@ -52,14 +57,19 @@ async function handleConfirmInvitation(req, res) {
         const candidate = candidateDetails.rows[0];
         
         const lang = langOverride || candidate.language || 'en';
-        
+
+        // --- DEBUG LOGS ---
+        console.log(`Database language for candidate ${candidate_id}: '${candidate.language}'`);
+        console.log(`Final language chosen: '${lang}'`);
+        // ------------------
+
         const backendBaseUrl = `${process.env.BACKEND_BASE_URL || 'http://localhost:3000'}/api/invitations`;
         const qrCodeLink = `${backendBaseUrl}/show-qrcode?token=${token}&lang=${lang}`;
 
         let emailSubject, emailBody, pageTitle, pageBody;
 
-        // --- Logic duplicated for each language as requested ---
         if (lang === 'ar') {
+            console.log("Executing ARABIC language logic."); // DEBUG
             emailSubject = "تأكيد حضورك: حفل الاستقبال السنوي للغرفة الإسلامية";
             emailBody = `<div style="text-align: right; font-family: 'Cairo', sans-serif; direction: rtl; white-space: pre-wrap;">شكرًا للتسجيل!
 نتطلع إلى لقائكم في "حفل الاستقبال السنوي للغرفة الإسلامية" يوم الأحد الموافق 14 سبتمبر 2025، في تمام الساعة 5 مساءً، بقاعة ماجنيتا - فندق فيرمونت نايل سيتي - القاهرة.
@@ -73,10 +83,11 @@ async function handleConfirmInvitation(req, res) {
             pageTitle = "تم تأكيد الحضور";
             pageBody = `<h1>تم تأكيد حضورك بنجاح!</h1><p>تم إرسال تفاصيل دعوتك ورمز الاستجابة السريعة في بريد إلكتروني منفصل.</p>`;
         } else if (lang === 'fr') {
+            console.log("Executing FRENCH language logic."); // DEBUG
             emailSubject = "Présence confirmée : Réception Annuelle de la CICD";
             emailBody = `<div style="text-align: left; font-family: 'Cairo', sans-serif; white-space: pre-wrap;">Merci pour votre inscription. Nous nous réjouissons de vous accueillir à « la Réception Annuelle de la CICD », qui aura lieu le dimanche 14 septembre 2025 à 17h00, à la salle « Magenta Ballroom » de l’Hôtel de Fairmont Nile City, au Caire.
 
-L'entrée est disponible exclusivement via QR code.
+L'entrée est disponible exclusively via QR code.
 <a href="${qrCodeLink}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px;">Afficher mon code QR</a>
 
 Pour en savoir plus, veuillez contacter : 
@@ -85,6 +96,7 @@ Tél : ‪(+2) 01148601759‬
             pageTitle = "Présence confirmée";
             pageBody = `<h1>Votre présence a été confirmée avec succès !</h1><p>Les détails de votre invitation et votre code QR ont été envoyés dans un e-mail séparé.</p>`;
         } else { // Default to English
+            console.log("Executing ENGLISH language logic."); // DEBUG
             emailSubject = "Attendance Confirmed: ICCD Annual Reception";
             emailBody = `<div style="text-align: left; font-family: 'Cairo', sans-serif; white-space: pre-wrap;">Thank you for your registration. We look forward to welcoming you to "ICCD Annual Reception" on Sunday, September 14, 2025, at 5:00 PM, at the Magenta Ballroom, Fairmont Nile City Hotel, Cairo.
 
@@ -113,6 +125,11 @@ Tel: ‪(+2) 01148601759‬
 async function handleDeclineInvitation(req, res) {
     const { token, lang: langOverride } = req.query;
 
+    // --- DEBUG LOGS ---
+    console.log("\n--- [ACTION]: handleDeclineInvitation ---");
+    console.log(`Query Params: token=${token}, langOverride=${langOverride}`);
+    // ------------------
+
     if (!token) {
         const body = `<h1>Error</h1><p>Invitation token is missing.</p>`;
         return res.status(400).send(generateHtmlPage('en', 'Error', body, token));
@@ -131,20 +148,27 @@ async function handleDeclineInvitation(req, res) {
         
         const lang = langOverride || candidate.language || 'en';
         
+        // --- DEBUG LOGS ---
+        console.log(`Database language for candidate ${candidate_id}: '${candidate.language}'`);
+        console.log(`Final language chosen: '${lang}'`);
+        // ------------------
+
         let emailSubject, emailBody, pageTitle, pageBody;
 
-        // --- Logic duplicated for each language ---
         if (lang === 'ar') {
+            console.log("Executing ARABIC language logic."); // DEBUG
             emailSubject = "تسجيل رفض الدعوة";
             emailBody = `<div style="text-align: center; font-family: 'Cairo', sans-serif;"><h1>تم تسجيل رفضك.</h1><p>شكراً لإعلامنا. نأمل أن نراك في أحداثنا المستقبلية.</p></div>`;
             pageTitle = "تم تسجيل الرفض";
             pageBody = `<h1>تم تسجيل رفضك.</h1><p>شكراً لإعلامنا. نأمل أن نراك في أحداثنا المستقبلية.</p>`;
         } else if (lang === 'fr') {
+            console.log("Executing FRENCH language logic."); // DEBUG
             emailSubject = "Invitation refusée";
             emailBody = `<div style="text-align: center; font-family: 'Cairo', sans-serif;"><h1>Votre refus a été enregistré.</h1><p>Merci de nous en avoir informé. Nous espérons vous voir lors de nos prochains événements.</p></div>`;
             pageTitle = "Refusé";
             pageBody = `<h1>Votre refus a été enregistré.</h1><p>Merci de nous en avoir informé. Nous espérons vous voir lors de nos prochains événements.</p>`;
         } else { // Default to English
+            console.log("Executing ENGLISH language logic."); // DEBUG
             emailSubject = "Invitation Declined";
             emailBody = `<div style="text-align: center; font-family: 'Cairo', sans-serif;"><h1>Your refusal has been registered.</h1><p>Thank you for letting us know. We hope to see you at our future events.</p></div>`;
             pageTitle = "Declined";
@@ -166,6 +190,11 @@ async function handleDeclineInvitation(req, res) {
 async function handleShowQrCode(req, res) {
     const { token, lang: langOverride } = req.query;
 
+    // --- DEBUG LOGS ---
+    console.log("\n--- [ACTION]: handleShowQrCode ---");
+    console.log(`Query Params: token=${token}, langOverride=${langOverride}`);
+    // ------------------
+
     if (!token) {
         const body = `<h1>Error</h1><p>Invitation token is missing.</p>`;
         return res.status(400).send(generateHtmlPage('en', 'Error', body, token));
@@ -182,10 +211,15 @@ async function handleShowQrCode(req, res) {
         const lang = langOverride || language || 'en';
         const qrCodeDataUrl = await QRCode.toDataURL(invitation_id);
         
+        // --- DEBUG LOGS ---
+        console.log(`Database language for this invitation: '${language}'`);
+        console.log(`Final language chosen: '${lang}'`);
+        // ------------------
+
         let pageTitle, pageBody;
 
-        // --- Logic duplicated for each language ---
         if (lang === 'ar') {
+            console.log("Executing ARABIC language logic."); // DEBUG
             pageTitle = "رمز الاستجابة السريعة";
             pageBody = `
                 <h1>رمز الاستجابة السريعة الخاص بك</h1>
@@ -193,6 +227,7 @@ async function handleShowQrCode(req, res) {
                 <img src="${qrCodeDataUrl}" alt="QR Code"><br/>
                 <a href="${qrCodeDataUrl}" download="rams-qrcode-${invitation_id}.png" class="download-btn">تحميل رمز الاستجابة السريعة</a>`;
         } else if (lang === 'fr') {
+            console.log("Executing FRENCH language logic."); // DEBUG
             pageTitle = "Code QR";
             pageBody = `
                 <h1>Votre Code QR</h1>
@@ -200,6 +235,7 @@ async function handleShowQrCode(req, res) {
                 <img src="${qrCodeDataUrl}" alt="QR Code"><br/>
                 <a href="${qrCodeDataUrl}" download="rams-qrcode-${invitation_id}.png" class="download-btn">Télécharger le code QR</a>`;
         } else { // Default to English
+            console.log("Executing ENGLISH language logic."); // DEBUG
             pageTitle = "QR Code";
             pageBody = `
                 <h1>Your QR Code</h1>
@@ -225,6 +261,11 @@ async function sendInvitations(req, res) {
         return res.status(400).json({ status: 'ERROR', message: 'Missing required fields.' });
     }
 
+    // --- DEBUG LOGS ---
+    console.log("\n--- [ACTION]: sendInvitations ---");
+    console.log(`Attempting to send invitations to ${candidateIds.length} candidates.`);
+    // ------------------
+
     const successfulRecipients = [];
     const failedRecipients = [];
     const backendBaseUrl = `${process.env.BACKEND_BASE_URL || 'http://localhost:3000'}/api/invitations`;
@@ -238,6 +279,10 @@ async function sendInvitations(req, res) {
 
                 const lang = ['ar', 'en', 'fr'].includes(candidate.language) ? candidate.language : 'en';
                 
+                // --- DEBUG LOGS ---
+                console.log(`Processing candidate ${candidateId}: DB language is '${candidate.language}', chosen language is '${lang}'`);
+                // ------------------
+
                 const upsertResult = await db.query(db.UPSERT_INVITATION_QUERY, [candidateId, eventId]);
                 const invitationToken = upsertResult.rows[0].invitation_token;
                 const confirmUrl = `${backendBaseUrl}/confirm?token=${invitationToken}`;
@@ -245,7 +290,6 @@ async function sendInvitations(req, res) {
 
                 let emailSubject, emailBody;
 
-                // --- Logic duplicated for each language ---
                 if (lang === 'ar') {
                     emailSubject = "دعوة إلى: حفل الاستقبال السنوي للغرفة الإسلامية";
                     emailBody = `<div style="text-align: center; font-family: 'Cairo', sans-serif;" dir="rtl">
