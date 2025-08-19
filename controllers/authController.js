@@ -3,7 +3,7 @@ const db = require('../db/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
-
+console.log('Starting authController module...');
 async function login(req, res) {
     const { username, password } = req.body;
 

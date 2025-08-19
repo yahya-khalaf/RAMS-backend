@@ -9,6 +9,7 @@ const port = process.env.PORT || 3000;
 // Import the database and routes
 const db = require('./db/database');
 const authRoutes = require('./routes/authRoutes');
+console.log('Successfully imported authRoutes.');
 const candidateRoutes = require('./routes/candidateRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const invitationRoutes = require('./routes/invitationRoutes');

@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const authenticateToken = require('../authMiddleware');
-
+console.log('Successfully imported authController.');
 // Public route for logging in
 router.post('/login', authController.login);
 
