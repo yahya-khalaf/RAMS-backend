@@ -8,7 +8,7 @@ const port = process.env.PORT || 3000;
 
 // Import the database and routes
 const db = require('./db/database');
-// const authRoutes = require('./routes/authRoutes');
+const authRoutes = require('./routes/authRoutes');
 const candidateRoutes = require('./routes/candidateRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const invitationRoutes = require('./routes/invitationRoutes');
@@ -28,7 +28,7 @@ app.use(cors({
 app.use(express.json());
 
 // Public route for login
-// app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 
 // Protected routes
 app.use('/api/candidates', candidateRoutes);
