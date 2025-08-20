@@ -14,7 +14,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const invitationRoutes = require('./routes/invitationRoutes');
 const instituteRoutes = require('./routes/instituteRoutes');
 const authenticateToken = require('./authMiddleware'); // Import the middleware
-
+const checkinRoutes = require('./routes/checkinRoutes');
 // const corsOptions = {
 //     origin: 'https://registration.iccdglobal.com',
 //     optionsSuccessStatus: 200 // For legacy browser support
@@ -29,7 +29,7 @@ app.use(express.json());
 
 // Public route for login
 app.use('/api/auth', authRoutes);
-
+app.use('/api/checkin', checkinRoutes);
 // Protected routes
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/upload', authenticateToken, uploadRoutes);

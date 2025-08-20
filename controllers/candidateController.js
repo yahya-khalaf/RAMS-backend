@@ -138,7 +138,9 @@ async function getFilteredCandidates(req, res) {
                 ii.institute_name as custom_institute_name,
                 ei.invitation_id,
                 ei.state,
-                ei.invitations_sent
+                ei.invitations_sent,
+                ei.is_checked_in,
+                ei.checked_in_at
             FROM candidates c
             LEFT JOIN event_invitations ei ON c.candidate_id = ei.candidate_id
             LEFT JOIN invited_institutes ii ON c.institute_id = ii.institute_id

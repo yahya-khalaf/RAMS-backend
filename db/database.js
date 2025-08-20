@@ -151,9 +151,6 @@ const DELETE_INSTITUTE_QUERY = `
     WHERE institute_id = $1
     RETURNING institute_id;
 `;
-const GET_ADMIN_BY_USERNAME_QUERY = `
-    SELECT admin_id, password_hash FROM admins WHERE username = $1;
-`;
 
 const INSERT_NEW_ADMIN_QUERY = `
     INSERT INTO admins (username, password_hash)
@@ -162,6 +159,54 @@ const INSERT_NEW_ADMIN_QUERY = `
     RETURNING admin_id, username;
 `;
 
+// Add to the top with other query constants
+const GET_ADMIN_BY_USERNAME_QUERY = `
+    SELECT admin_id, username, password_hash, role FROM admins WHERE username = $1;
+`;
+
+const GET_CANDIDATE_FOR_CHECKIN_QUERY = `
+    SELECT
+        c.first_name,
+        c.last_name,
+        c.institute,
+        ei.is_checked_in,
+        ei.checked_in_at
+    FROM event_invitations ei
+    JOIN candidates c ON ei.candidate_id = c.candidate_id
+    WHERE ei.invitation_id = $1 AND ei.state = 'Accepted';
+`;
+
+const MARK_CANDIDATE_AS_CHECKED_IN_QUERY = `
+    UPDATE event_invitations
+    SET is_checked_in = TRUE, checked_in_at = NOW()
+    WHERE invitation_id = $1 AND is_checked_in = FALSE
+    RETURNING candidate_id, is_checked_in, checked_in_at;
+`;
+// Add to the top with other query constants
+// In db/database.js, add these new queries
+
+const INSERT_NEW_REGISTERER_QUERY = `
+    INSERT INTO admins (username, password_hash, role)
+    VALUES ($1, $2, 'registerer')
+    ON CONFLICT (username) DO NOTHING
+    RETURNING admin_id, username, role, status;
+`;
+
+const UPDATE_REGISTERER_STATUS_QUERY = `
+    UPDATE admins
+    SET status = $1
+    WHERE admin_id = $2 AND role = 'registerer'
+    RETURNING admin_id, username, status;
+`;
+
+const DELETE_REGISTERER_QUERY = `
+    DELETE FROM admins
+    WHERE admin_id = $1 AND role = 'registerer'
+    RETURNING admin_id;
+`;
+const GET_ALL_REGISTERERS_QUERY = `
+    SELECT admin_id, username, status, created_at FROM admins WHERE role = 'registerer' ORDER BY created_at DESC;
+`;
 module.exports = {
     pool,
     query,
@@ -178,7 +223,13 @@ module.exports = {
     INSERT_NEW_INSTITUTE_QUERY,
     DELETE_CANDIDATE_QUERY,
     DELETE_INSTITUTE_QUERY,
-    GET_ADMIN_BY_USERNAME_QUERY,
     INSERT_NEW_ADMIN_QUERY,
-    GET_CANDIDATE_INFO_BY_ID
+    GET_CANDIDATE_INFO_BY_ID,
+    GET_ADMIN_BY_USERNAME_QUERY,
+    GET_CANDIDATE_FOR_CHECKIN_QUERY,
+    MARK_CANDIDATE_AS_CHECKED_IN_QUERY,
+    INSERT_NEW_REGISTERER_QUERY,
+    UPDATE_REGISTERER_STATUS_QUERY,
+    DELETE_REGISTERER_QUERY,
+    GET_ALL_REGISTERERS_QUERY
 };
