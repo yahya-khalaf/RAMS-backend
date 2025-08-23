@@ -138,6 +138,7 @@ const INSERT_NEW_INSTITUTE_QUERY = `
     RETURNING *;
 `;
 
+
 // NEW: Query to delete a candidate by ID
 const DELETE_CANDIDATE_QUERY = `
     DELETE FROM candidates
@@ -161,7 +162,7 @@ const INSERT_NEW_ADMIN_QUERY = `
 
 // Add to the top with other query constants
 const GET_ADMIN_BY_USERNAME_QUERY = `
-    SELECT admin_id, username, password_hash, role FROM admins WHERE username = $1;
+    SELECT admin_id, username, password_hash, role ,status FROM admins WHERE username = $1;
 `;
 
 const GET_CANDIDATE_FOR_CHECKIN_QUERY = `
