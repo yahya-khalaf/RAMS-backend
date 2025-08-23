@@ -29,7 +29,6 @@ async function login(req, res) {
         if (admin.status === 'suspended') {
             return res.status(403).json({ status: 'ERROR', message: 'This account has been suspended.' });
         }
-        console.log(admin.status);
 
         const tokenPayload = {
             adminId: admin.admin_id,
