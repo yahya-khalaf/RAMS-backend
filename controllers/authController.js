@@ -3,6 +3,7 @@ const db = require('../db/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+
 async function login(req, res) {
     const { username, password } = req.body;
 
@@ -23,6 +24,12 @@ async function login(req, res) {
         if (!isPasswordMatch) {
             return res.status(401).json({ status: 'ERROR', message: 'Invalid credentials.' });
         }
+
+        // NEW: Check if the account is suspended before issuing a token
+        if (admin.status === 'suspended') {
+            return res.status(403).json({ status: 'ERROR', message: 'This account has been suspended.' });
+        }
+
         const tokenPayload = {
             adminId: admin.admin_id,
             username: admin.username,
@@ -38,7 +45,8 @@ async function login(req, res) {
     }
 }
 
-// NEW: Function to create a new admin account
+// ... (the rest of the file remains the same)
+
 async function createAdmin(req, res) {
     const { username, password } = req.body;
 
