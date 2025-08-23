@@ -18,7 +18,6 @@ function authenticateRegisterer(req, res, next) {
         if (user.role !== 'registerer' && user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied. Registerer role required.' });
         }
-        console.log(req.user);
         req.user = user;
         next();
     });

@@ -7,8 +7,12 @@ const db = require('../db/database');
  */
 async function getCandidateForCheckIn(req, res) {
     const { invitationId } = req.params;
-
     try {
+        const user = await db.query(db.GET_ADMIN_BY_USERNAME_QUERY, [req.user.username]);
+        const admin = user.rows[0];
+        if (admin.status === 'suspended') {
+            return res.status(403).json({ status: 'ERROR', message: 'This account has been suspended.' });
+        }
         const result = await db.query(db.GET_CANDIDATE_FOR_CHECKIN_QUERY, [invitationId]);
 
         if (result.rowCount === 0) {
@@ -30,7 +34,6 @@ async function checkInCandidate(req, res) {
     const { invitationId } = req.params;
 
     try {
-        
         const result = await db.query(db.MARK_CANDIDATE_AS_CHECKED_IN_QUERY, [invitationId]);
 
         if (result.rowCount === 0) {
