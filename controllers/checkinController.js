@@ -30,11 +30,17 @@ async function checkInCandidate(req, res) {
     const { invitationId } = req.params;
 
     try {
+        const User = await db.query(db.GET_ADMIN_BY_USERNAME_QUERY, [username]);
+        const admin = User.rows[0];
+         if (admin.status === 'suspended') {
+            return res.status(403).json({ status: 'ERROR', message: 'This account has been suspended.' });
+        }
         const result = await db.query(db.MARK_CANDIDATE_AS_CHECKED_IN_QUERY, [invitationId]);
 
         if (result.rowCount === 0) {
             return res.status(404).json({ status: 'NOT_FOUND', message: 'Invitation not found or already checked in.' });
         }
+
 
         res.status(200).json({ status: 'SUCCESS', message: 'Candidate checked in successfully.', data: result.rows[0] });
 
