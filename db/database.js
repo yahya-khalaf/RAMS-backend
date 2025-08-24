@@ -111,12 +111,10 @@ const UPSERT_INVITATION_QUERY = `
         candidate_id,
         event_id,
         state,
-        invitations_sent,
-        invitation_token
-    ) VALUES (gen_random_uuid(), $1, $2, 'pending', 1, gen_random_uuid())
+        invitations_sent
+    ) VALUES (gen_random_uuid(), $1, $2, 'pending', 1
     ON CONFLICT (candidate_id, event_id) DO UPDATE
-    SET invitations_sent = event_invitations.invitations_sent + 1,
-        invitation_token = gen_random_uuid()
+    SET invitations_sent = event_invitations.invitations_sent + 1
     RETURNING invitation_token;
 `;
 
