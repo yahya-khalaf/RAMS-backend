@@ -67,7 +67,7 @@ async function handleConfirmInvitation(req, res) {
 <a href="${qrCodeLink}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px;">إظهار رمز الاستجابة السريعة</a>
 
 للمزيد من التفاصيل، يُرجى التواصل عبر:
-ت: ‪(+2) 01148601759‬
+ت: ‪(+2) 01100409669‬
   ‪(+2) 01004816779</div>`;
             pageTitle = "تم تأكيد الحضور";
             pageBody = `<h1>تم تأكيد حضورك بنجاح!</h1><p>تم إرسال تفاصيل دعوتك ورمز الاستجابة السريعة في بريد إلكتروني منفصل.</p>`;
@@ -79,7 +79,7 @@ L'entrée est disponible exclusively via QR code.
 <a href="${qrCodeLink}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px;">Afficher mon code QR</a>
 
 Pour en savoir plus, veuillez contacter : 
-Tél : ‪(+2) 01148601759‬ 
+Tél : ‪(+2) 01100409669‬ 
        ‪(+2) 01004816779</div>`;
             pageTitle = "Présence confirmée";
             pageBody = `<h1>Votre présence a été confirmée avec succès !</h1><p>Les détails de votre invitation et votre code QR ont été envoyés dans un e-mail séparé.</p>`;
@@ -91,7 +91,7 @@ Entry is available exclusively via QR code.
 <a href="${qrCodeLink}" style="display: inline-block; padding: 12px 24px; background-color: #15a9b2; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px;">Show My QR Code</a>
 
 For more details, please contact:
-Tel: ‪(+2) 01148601759‬ 
+Tel: ‪(+2) 01100409669‬ 
       ‪(+2) 01004816779</div>`;
             pageTitle = "Attendance Confirmed";
             pageBody = `<h1>Your attendance has been confirmed successfully!</h1><p>Your invitation details and QR code have been sent in a separate email.</p>`;
